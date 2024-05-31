@@ -25,7 +25,7 @@ Please install the Go Programming Language following the instructions on the Go 
 
 To install on the host, execute the following commands:
 ```
-$ git clone https://github.com/wlyu2/wr-trivy-dist.git
+$ git clone https://github.com/dreyna7399/wr-trivy-dist.git
 $ cd wr-trivy-dist
 $ ./setup.sh install
 ```
@@ -71,7 +71,7 @@ TBD
 ## Steps to Install
 
 ```
-$ git clone https://github.com/wlyu2/wr-trivy-dist.git
+$ git clone https://github.com/dreyna7399/wr-trivy-dist.git
 $ cd wr-trivy-dist
 $ docker build -t wr-trivy .
 ```
