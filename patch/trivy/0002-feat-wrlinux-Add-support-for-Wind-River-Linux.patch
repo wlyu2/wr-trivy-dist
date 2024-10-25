@@ -1,9 +1,13 @@
-From b1adfd5599669d033f66d6caa27c80f2af17fa82 Mon Sep 17 00:00:00 2001
+From a3c6d711fc126459e38d0cd140c6b68b5938efeb Mon Sep 17 00:00:00 2001
 From: Sakib Sajal <you@example.com>
 Date: Wed, 19 Oct 2022 16:18:38 -0400
 Subject: [PATCH 2/3] feat(wrlinux): Add support for Wind River Linux
 
 Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
+
+This commit was not accepted by the upstream.
+
+Signed-off-by: William Lyu <William.Lyu@windriver.com>
 ---
  pkg/detector/ospkg/detect.go                  |   2 +
  .../testdata/fixtures/data-source.yaml        |  12 ++
@@ -93,7 +97,7 @@ index 000000000..9a5f0096f
 +            FixedVersion: "10.19.5.4"
 diff --git a/pkg/detector/ospkg/wrlinux/wrlinux.go b/pkg/detector/ospkg/wrlinux/wrlinux.go
 new file mode 100644
-index 000000000..312b75ab4
+index 000000000..5dc207b17
 --- /dev/null
 +++ b/pkg/detector/ospkg/wrlinux/wrlinux.go
 @@ -0,0 +1,149 @@
@@ -202,7 +206,7 @@ index 000000000..312b75ab4
 +}
 +
 +// IsSupportedVersion checks if the OS version reached end-of-support.
-+func (s *Scanner) IsSupportedVersion(osFamily, osVer string) bool {
++func (s *Scanner) IsSupportedVersion(osFamily ftypes.OSType, osVer string) bool {
 +	release := OsVerToRelease(osVer)
 +	if release == "LINCD" {
 +		return true

@@ -1,7 +1,7 @@
-From 9c4b61fbe24a788be55047d0d0ef3fa69fa3b99c Mon Sep 17 00:00:00 2001
+From 470af9af0b198ff79cb3efe7a55b6dc0c1f2b0ae Mon Sep 17 00:00:00 2001
 From: David Reyna <David.Reyna@windriver.com>
 Date: Fri, 25 Oct 2024 00:42:31 -0700
-Subject: [PATCH] add new 'context' to detector APIs
+Subject: [PATCH 3/3] add new 'context' to detector APIs
 
 Signed-off-by: David Reyna <David.Reyna@windriver.com>
 ---
@@ -82,5 +82,5 @@ index 5dc207b17..a9acd25b1 100644
  	}
  	return s.clock.Now().Before(eol)
 -- 
-2.47.0
+2.25.1
 

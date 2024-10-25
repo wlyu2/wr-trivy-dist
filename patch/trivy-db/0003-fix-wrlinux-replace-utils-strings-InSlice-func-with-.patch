@@ -1,0 +1,47 @@
+From d171eec7a3d383a1debc13361df63aeecdef7bbe Mon Sep 17 00:00:00 2001
+From: William Lyu <William.Lyu@windriver.com>
+Date: Fri, 25 Oct 2024 18:55:11 -0400
+Subject: [PATCH 3/3] fix(wrlinux): replace `utils/strings/InSlice` func with
+ `slices.Contains`
+
+This patch is inspired by commit 5d136071f4d8f91aaa86ff04fe57c44343409965:
+
+pkg: replace `utils/strings/InSlice` func with `slices.Contains` (#413)
+
+Signed-off-by: William Lyu <William.Lyu@windriver.com>
+---
+ pkg/vulnsrc/wrlinux/wrlinux.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/pkg/vulnsrc/wrlinux/wrlinux.go b/pkg/vulnsrc/wrlinux/wrlinux.go
+index b0d290c..fc5d683 100644
+--- a/pkg/vulnsrc/wrlinux/wrlinux.go
++++ b/pkg/vulnsrc/wrlinux/wrlinux.go
+@@ -14,6 +14,7 @@ import (
+ 	"io"
+ 	"log"
+ 	"path/filepath"
++	"slices"
+ 	"strings"
+ 
+ 	bolt "go.etcd.io/bbolt"
+@@ -22,7 +23,6 @@ import (
+ 	"github.com/aquasecurity/trivy-db/pkg/db"
+ 	"github.com/aquasecurity/trivy-db/pkg/types"
+ 	"github.com/aquasecurity/trivy-db/pkg/utils"
+-	ustrings "github.com/aquasecurity/trivy-db/pkg/utils/strings"
+ 	"github.com/aquasecurity/trivy-db/pkg/vulnsrc/vulnerability"
+ )
+ 
+@@ -134,7 +134,7 @@ func defaultPut(dbc db.Operation, tx *bolt.Tx, advisory interface{}) error {
+ 	for packageName, patch := range cve.Patches {
+ 		pkgName := string(packageName)
+ 		for osVer, status := range patch {
+-			if !ustrings.InSlice(status.Status, targetStatuses) {
++			if !slices.Contains(targetStatuses, status.Status) {
+ 				continue
+ 			}
+ 			release := OsVerToRelease(string(osVer))
+-- 
+2.25.1
+
