@@ -56,7 +56,7 @@ function get_trivy_db_commit {
     fi
 
     # Indicate error when there are multiple such lines.
-    line_cnt=$(wc -l <<< "$commit_ver_lines" | awk "{ print $1 }")
+    line_cnt=$(wc -l <<< "$commit_ver_lines" | awk '{ print $1 }')
     if [ "$line_cnt" -ne "1" ]; then
         echo "get_trivy_db_commit(): ERROR! Incorrect number of lines associated with trivy-db found in go.mod."
         echo "$commit_ver_lines"
