@@ -1,4 +1,4 @@
-From 6894bb30d7b68da9f3c0445960d5b707a85e752c Mon Sep 17 00:00:00 2001
+From 3da4701ce355ff28558aca506f72974e4ae66e9a Mon Sep 17 00:00:00 2001
 From: William Lyu <William.Lyu@windriver.com>
 Date: Fri, 17 Nov 2023 15:11:47 -0500
 Subject: [PATCH 3/3] Resolve merge issues
@@ -67,10 +67,10 @@ index 451067c01..8f34f0f3a 100644
  
  func (a wrlinuxOSAnalyzer) Required(filePath string, _ os.FileInfo) bool {
 diff --git a/pkg/fanal/types/const.go b/pkg/fanal/types/const.go
-index 28e11d55b..208b33fb1 100644
+index c304f40ba..c45990399 100644
 --- a/pkg/fanal/types/const.go
 +++ b/pkg/fanal/types/const.go
-@@ -39,6 +39,7 @@ const (
+@@ -41,6 +41,7 @@ const (
  	SLES               OSType = "suse linux enterprise server"
  	Ubuntu             OSType = "ubuntu"
  	Wolfi              OSType = "wolfi"

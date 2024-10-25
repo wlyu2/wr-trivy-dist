@@ -1,4 +1,4 @@
-From ff789257414f1d72afafef9f21e284dcb720830c Mon Sep 17 00:00:00 2001
+From 252a87d359162dc90dbe23167d87ce3f3d5c4524 Mon Sep 17 00:00:00 2001
 From: William Lyu <William.Lyu@windriver.com>
 Date: Fri, 17 Nov 2023 15:14:43 -0500
 Subject: [PATCH 2/2] Resolve merge conflict
@@ -8,12 +8,12 @@ Subject: [PATCH 2/2] Resolve merge conflict
  1 file changed, 2 deletions(-)
 
 diff --git a/main.go b/main.go
-index 4951f75..bf6f598 100644
+index 4bbe621..cc7f344 100644
 --- a/main.go
 +++ b/main.go
-@@ -184,12 +184,10 @@ func run() error {
- 		if err := k8s.Update(); err != nil {
- 			return xerrors.Errorf("k8s update error: %w", err)
+@@ -192,12 +192,10 @@ func run() error {
+ 		if err := ec.Update(); err != nil {
+ 			return xerrors.Errorf("openEuler CVE update error: %w", err)
  		}
 -		commitMsg = "Chainguard Security Data"
  	case "wrlinux":
@@ -25,5 +25,5 @@ index 4951f75..bf6f598 100644
  		return xerrors.New("unknown target")
  	}
 -- 
-2.25.1
+2.47.0
 

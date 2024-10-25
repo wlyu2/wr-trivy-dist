@@ -1,0 +1,86 @@
+From 9c4b61fbe24a788be55047d0d0ef3fa69fa3b99c Mon Sep 17 00:00:00 2001
+From: David Reyna <David.Reyna@windriver.com>
+Date: Fri, 25 Oct 2024 00:42:31 -0700
+Subject: [PATCH] add new 'context' to detector APIs
+
+Signed-off-by: David Reyna <David.Reyna@windriver.com>
+---
+ pkg/detector/ospkg/wrlinux/wrlinux.go | 20 ++++++++++++--------
+ 1 file changed, 12 insertions(+), 8 deletions(-)
+
+diff --git a/pkg/detector/ospkg/wrlinux/wrlinux.go b/pkg/detector/ospkg/wrlinux/wrlinux.go
+index 5dc207b17..a9acd25b1 100644
+--- a/pkg/detector/ospkg/wrlinux/wrlinux.go
++++ b/pkg/detector/ospkg/wrlinux/wrlinux.go
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2022 Wind River Systems, Inc.
++ * Copyright (c) 2022-2024 Wind River Systems, Inc.
+  *
+  * The right to copy, distribute, modify, or otherwise make use
+  * of this software may be licensed only pursuant to the terms
+@@ -9,6 +9,7 @@
+ package wrlinux
+ 
+ import (
++	"context"
+ 	"time"
+ 
+ 	"golang.org/x/xerrors"
+@@ -28,6 +29,9 @@ var (
+ 	eolDates = map[string]time.Time{
+ 		"10.19": time.Date(2024, 11, 30, 23, 59, 59, 0, time.UTC),
+ 		"10.21": time.Date(2026, 6, 30, 23, 59, 59, 0, time.UTC),
++		"10.22": time.Date(2027, 6, 30, 23, 59, 59, 0, time.UTC),
++		"10.23": time.Date(2028, 6, 30, 23, 59, 59, 0, time.UTC),
++		"10.24": time.Date(2029, 6, 30, 23, 59, 59, 0, time.UTC),
+ 	}
+ )
+ 
+@@ -65,10 +69,9 @@ func NewScanner(opts ...option) *Scanner {
+ }
+ 
+ // Detect scans and returns vulnerabilities using wrlinux scanner
+-func (s *Scanner) Detect(osVer string, _ *ftypes.Repository, pkgs []ftypes.Package) ([]types.DetectedVulnerability, error) {
+-	log.Logger.Info("Detecting Wind River Linux vulnerabilities...")
+-	log.Logger.Debugf("Wind River Linux: os version: %s", osVer)
+-	log.Logger.Debugf("Wind River Linux: the number of packages: %d", len(pkgs))
++func (s *Scanner) Detect(ctx context.Context, osVer string, _ *ftypes.Repository, pkgs []ftypes.Package) ([]types.DetectedVulnerability, error) {
++	log.InfoContext(ctx, "Detecting Wind River Linux vulnerabilities...", log.String("os_version", osVer),
++		log.Int("pkg_num", len(pkgs)))
+ 
+ 	var vulns []types.DetectedVulnerability
+ 	for _, pkg := range pkgs {
+@@ -80,10 +83,11 @@ func (s *Scanner) Detect(osVer string, _ *ftypes.Repository, pkgs []ftypes.Packa
+ 		for _, adv := range advisories {
+ 			vuln := types.DetectedVulnerability{
+ 				VulnerabilityID:  adv.VulnerabilityID,
++				PkgID:            pkg.ID,
+ 				PkgName:          pkg.Name,
+ 				InstalledVersion: utils.FormatVersion(pkg),
+ 				FixedVersion:     adv.FixedVersion,
+-				PkgRef:           pkg.Ref,
++				PkgIdentifier:    pkg.Identifier,
+ 				Layer:            pkg.Layer,
+ 				Custom:           adv.Custom,
+ 				DataSource:       adv.DataSource,
+@@ -103,14 +107,14 @@ func (s *Scanner) Detect(osVer string, _ *ftypes.Repository, pkgs []ftypes.Packa
+ }
+ 
+ // IsSupportedVersion checks if the OS version reached end-of-support.
+-func (s *Scanner) IsSupportedVersion(osFamily ftypes.OSType, osVer string) bool {
++func (s *Scanner) IsSupportedVersion(ctx context.Context, osFamily ftypes.OSType, osVer string) bool {
+ 	release := OsVerToRelease(osVer)
+ 	if release == "LINCD" {
+ 		return true
+ 	}
+ 	eol, ok := eolDates[release]
+ 	if !ok {
+-		log.Logger.Warnf("This OS version is not on the EOL list: %s %s", osFamily, osVer)
++		log.InfoContext(ctx, "This OS version is not on the EOL list:", log.String("osFamily", string(osFamily)),log.String("osVer", osVer))
+ 		return false
+ 	}
+ 	return s.clock.Now().Before(eol)
+-- 
+2.47.0
+

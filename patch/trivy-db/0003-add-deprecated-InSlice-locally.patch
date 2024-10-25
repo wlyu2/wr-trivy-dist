@@ -1,0 +1,57 @@
+From d3cf75043c61d7c7fc577520fa49bad762cf5e0b Mon Sep 17 00:00:00 2001
+From: David Reyna <David.Reyna@windriver.com>
+Date: Thu, 24 Oct 2024 23:51:06 -0700
+Subject: [PATCH] add deprecated InSlice locally
+
+Signed-off-by: David Reyna <David.Reyna@windriver.com>
+---
+ pkg/vulnsrc/wrlinux/wrlinux.go | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/pkg/vulnsrc/wrlinux/wrlinux.go b/pkg/vulnsrc/wrlinux/wrlinux.go
+index b0d290c..8605ad6 100644
+--- a/pkg/vulnsrc/wrlinux/wrlinux.go
++++ b/pkg/vulnsrc/wrlinux/wrlinux.go
+@@ -1,5 +1,5 @@
+ /*
+- * Copyright (c) 2022 Wind River Systems, Inc.
++ * Copyright (c) 2022-2024 Wind River Systems, Inc.
+  *
+  * The right to copy, distribute, modify, or otherwise make use
+  * of this software may be licensed only pursuant to the terms
+@@ -22,7 +22,6 @@ import (
+ 	"github.com/aquasecurity/trivy-db/pkg/db"
+ 	"github.com/aquasecurity/trivy-db/pkg/types"
+ 	"github.com/aquasecurity/trivy-db/pkg/utils"
+-	ustrings "github.com/aquasecurity/trivy-db/pkg/utils/strings"
+ 	"github.com/aquasecurity/trivy-db/pkg/vulnsrc/vulnerability"
+ )
+ 
+@@ -43,6 +42,15 @@ var (
+ 
+ type Option func(src *VulnSrc)
+ 
++func InSlice(a string, list []string) bool {
++        for _, b := range list {
++                if b == a {
++                        return true
++                }
++        }
++        return false
++}
++
+ func WithCustomPut(put db.CustomPut) Option {
+ 	return func(src *VulnSrc) {
+ 		src.put = put
+@@ -134,7 +142,7 @@ func defaultPut(dbc db.Operation, tx *bolt.Tx, advisory interface{}) error {
+ 	for packageName, patch := range cve.Patches {
+ 		pkgName := string(packageName)
+ 		for osVer, status := range patch {
+-			if !ustrings.InSlice(status.Status, targetStatuses) {
++			if !InSlice(status.Status, targetStatuses) {
+ 				continue
+ 			}
+ 			release := OsVerToRelease(string(osVer))
+-- 
+2.47.0
+

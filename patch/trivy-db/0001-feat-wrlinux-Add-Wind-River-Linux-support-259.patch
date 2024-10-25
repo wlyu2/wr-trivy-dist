@@ -1,29 +1,29 @@
-From dd4b27db38f797b0e569642d86e219c8a5c8036e Mon Sep 17 00:00:00 2001
+From 689668d8205ff4252b1c2eeeae17a03187a84a32 Mon Sep 17 00:00:00 2001
 From: Sakib Sajal <sakib.sajal@windriver.com>
 Date: Sun, 30 Oct 2022 19:12:50 -0400
-Subject: [PATCH 1/2] feat(wrlinux): Add Wind River Linux support (#259)
+Subject: [PATCH] feat(wrlinux): Add Wind River Linux support (#259)
 
 Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
 ---
  pkg/vulnsrc/vulnerability/const.go            |   1 +
- pkg/vulnsrc/vulnerability/vulnerability.go    |   5 +-
+ pkg/vulnsrc/vulnerability/vulnerability.go    |   2 +-
  pkg/vulnsrc/vulnsrc.go                        |   2 +
  .../vuln-list/wrlinux/CVE-2020-24241.json     |  29 +++
  pkg/vulnsrc/wrlinux/types.go                  |  18 ++
  pkg/vulnsrc/wrlinux/wrlinux.go                | 199 ++++++++++++++++++
  pkg/vulnsrc/wrlinux/wrlinux_test.go           |  86 ++++++++
- 7 files changed, 338 insertions(+), 2 deletions(-)
+ 7 files changed, 336 insertions(+), 1 deletion(-)
  create mode 100644 pkg/vulnsrc/wrlinux/testdata/vuln-list/wrlinux/CVE-2020-24241.json
  create mode 100644 pkg/vulnsrc/wrlinux/types.go
  create mode 100644 pkg/vulnsrc/wrlinux/wrlinux.go
  create mode 100644 pkg/vulnsrc/wrlinux/wrlinux_test.go
 
 diff --git a/pkg/vulnsrc/vulnerability/const.go b/pkg/vulnsrc/vulnerability/const.go
-index 0d4d0fd..0792a72 100644
+index 19fa371..521c01c 100644
 --- a/pkg/vulnsrc/vulnerability/const.go
 +++ b/pkg/vulnsrc/vulnerability/const.go
-@@ -20,6 +20,7 @@ const (
- 	Alma                  types.SourceID = "alma"
+@@ -21,6 +21,7 @@ const (
+ 	AzureLinux            types.SourceID = "azure"
  	CBLMariner            types.SourceID = "cbl-mariner"
  	Photon                types.SourceID = "photon"
 +	WRLinux               types.SourceID = "wrlinux"
@@ -31,26 +31,23 @@ index 0d4d0fd..0792a72 100644
  	PhpSecurityAdvisories types.SourceID = "php-security-advisories"
  	NodejsSecurityWg      types.SourceID = "nodejs-security-wg"
 diff --git a/pkg/vulnsrc/vulnerability/vulnerability.go b/pkg/vulnsrc/vulnerability/vulnerability.go
-index 1088103..7fbb9ce 100644
+index 440a495..0b983f1 100644
 --- a/pkg/vulnsrc/vulnerability/vulnerability.go
 +++ b/pkg/vulnsrc/vulnerability/vulnerability.go
-@@ -14,8 +14,9 @@ const (
+@@ -14,7 +14,7 @@ const (
  )
  
  var (
 -	sources = []types.SourceID{NVD, RedHat, Debian, Ubuntu, Alpine, Amazon, OracleOVAL, SuseCVRF, Photon,
--		ArchLinux, Alma, Rocky, CBLMariner, RubySec, PhpSecurityAdvisories, NodejsSecurityWg, GHSA, GLAD, OSV, K8sVulnDB,
 +	sources = []types.SourceID{NVD, RedHat, Debian, Ubuntu, Alpine, Amazon, OracleOVAL, SuseCVRF, Photon, WRLinux,
-+		ArchLinux, Alma, Rocky, CBLMariner, RubySec, PhpSecurityAdvisories, NodejsSecurityWg, GHSA, GLAD, OSV,
-+		K8sVulnDB,
+ 		ArchLinux, Alma, Rocky, CBLMariner, AzureLinux, RubySec, PhpSecurityAdvisories, NodejsSecurityWg, GHSA, GLAD, OSV, K8sVulnDB,
  	}
  )
- 
 diff --git a/pkg/vulnsrc/vulnsrc.go b/pkg/vulnsrc/vulnsrc.go
-index eee670b..f125d95 100644
+index eafb82c..908d62b 100644
 --- a/pkg/vulnsrc/vulnsrc.go
 +++ b/pkg/vulnsrc/vulnsrc.go
-@@ -24,6 +24,7 @@ import (
+@@ -25,6 +25,7 @@ import (
  	susecvrf "github.com/aquasecurity/trivy-db/pkg/vulnsrc/suse-cvrf"
  	"github.com/aquasecurity/trivy-db/pkg/vulnsrc/ubuntu"
  	"github.com/aquasecurity/trivy-db/pkg/vulnsrc/wolfi"
@@ -58,14 +55,14 @@ index eee670b..f125d95 100644
  )
  
  type VulnSrc interface {
-@@ -54,6 +55,7 @@ var (
+@@ -56,6 +57,7 @@ var (
  		wolfi.NewVulnSrc(),
  		chainguard.NewVulnSrc(),
  		bitnami.NewVulnSrc(),
 +		wrlinux.NewVulnSrc(),
  
  		k8svulndb.NewVulnSrc(),
- 		// Language-specific packages
+ 
 diff --git a/pkg/vulnsrc/wrlinux/testdata/vuln-list/wrlinux/CVE-2020-24241.json b/pkg/vulnsrc/wrlinux/testdata/vuln-list/wrlinux/CVE-2020-24241.json
 new file mode 100644
 index 0000000..65e522a

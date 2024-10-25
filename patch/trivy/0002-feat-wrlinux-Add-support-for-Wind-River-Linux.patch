@@ -1,4 +1,4 @@
-From 45e7b5fa29a0bd2b75e4e50feea16831868ded0b Mon Sep 17 00:00:00 2001
+From b1adfd5599669d033f66d6caa27c80f2af17fa82 Mon Sep 17 00:00:00 2001
 From: Sakib Sajal <you@example.com>
 Date: Wed, 19 Oct 2022 16:18:38 -0400
 Subject: [PATCH 2/3] feat(wrlinux): Add support for Wind River Linux
@@ -20,10 +20,10 @@ Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
  create mode 100644 pkg/detector/ospkg/wrlinux/wrlinux_test.go
 
 diff --git a/pkg/detector/ospkg/detect.go b/pkg/detector/ospkg/detect.go
-index 16c310226..0b6cfca7c 100644
+index fedc8d31c..1e3f7c455 100644
 --- a/pkg/detector/ospkg/detect.go
 +++ b/pkg/detector/ospkg/detect.go
-@@ -19,6 +19,7 @@ import (
+@@ -20,6 +20,7 @@ import (
  	"github.com/aquasecurity/trivy/pkg/detector/ospkg/suse"
  	"github.com/aquasecurity/trivy/pkg/detector/ospkg/ubuntu"
  	"github.com/aquasecurity/trivy/pkg/detector/ospkg/wolfi"
@@ -31,11 +31,11 @@ index 16c310226..0b6cfca7c 100644
  	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
  	"github.com/aquasecurity/trivy/pkg/log"
  	"github.com/aquasecurity/trivy/pkg/types"
-@@ -44,6 +45,7 @@ var (
- 		ftypes.Photon:       photon.NewScanner(),
- 		ftypes.Wolfi:        wolfi.NewScanner(),
- 		ftypes.Chainguard:   chainguard.NewScanner(),
-+		ftypes.WRLinux:      wrlinux.NewScanner(),
+@@ -48,6 +49,7 @@ var (
+ 		ftypes.Photon:             photon.NewScanner(),
+ 		ftypes.Wolfi:              wolfi.NewScanner(),
+ 		ftypes.Chainguard:         chainguard.NewScanner(),
++		ftypes.WRLinux:            wrlinux.NewScanner(),
  	}
  )
  
@@ -376,10 +376,10 @@ index 000000000..a17c68353
 +	}
 +}
 diff --git a/pkg/vulnerability/vulnerability.go b/pkg/vulnerability/vulnerability.go
-index 2b29e632e..d79c3e579 100644
+index 6c1e35427..59120621d 100644
 --- a/pkg/vulnerability/vulnerability.go
 +++ b/pkg/vulnerability/vulnerability.go
-@@ -36,6 +36,10 @@ var (
+@@ -39,6 +39,10 @@ var (
  			"https://hackerone.com",
  		},
  		vulnerability.RubySec: {"https://groups.google.com"},
