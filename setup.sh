@@ -186,7 +186,7 @@ function install {
 
     # Build trivy binary.
     pushd "$REPO_PATH_TRIVY" || return 1
-    go build -ldflags "-s -w -X=main.version=`git describe --tags --always`" ./cmd/trivy
+    go build -ldflags "-s -w -X=github.com/aquasecurity/trivy/pkg/version/app.ver=$(git describe --tags --always)" ./cmd/trivy
     popd || return 1
     if [ $phase -eq 4 ] ; then
         return
