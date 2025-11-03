@@ -1,22 +1,22 @@
-From a3c6d711fc126459e38d0cd140c6b68b5938efeb Mon Sep 17 00:00:00 2001
+From 0904591a97dd44ec7e03aadb04c9db33370d0785 Mon Sep 17 00:00:00 2001
 From: Sakib Sajal <you@example.com>
 Date: Wed, 19 Oct 2022 16:18:38 -0400
 Subject: [PATCH 2/3] feat(wrlinux): Add support for Wind River Linux
 
-Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
-
 This commit was not accepted by the upstream.
 
+Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
 Signed-off-by: William Lyu <William.Lyu@windriver.com>
 ---
  pkg/detector/ospkg/detect.go                  |   2 +
  .../testdata/fixtures/data-source.yaml        |  12 ++
- .../wrlinux/testdata/fixtures/invalid.yaml    |   9 ++
+ .../wrlinux/testdata/fixtures/invalid.yaml    |   9 +
  .../wrlinux/testdata/fixtures/wrlinux.yaml    |  13 ++
- pkg/detector/ospkg/wrlinux/wrlinux.go         | 149 ++++++++++++++++++
- pkg/detector/ospkg/wrlinux/wrlinux_test.go    | 123 +++++++++++++++
+ pkg/detector/ospkg/wrlinux/wrlinux.go         | 161 ++++++++++++++++++
+ pkg/detector/ospkg/wrlinux/wrlinux_test.go    | 131 ++++++++++++++
+ pkg/purl/purl.go                              |   2 +-
  pkg/vulnerability/vulnerability.go            |   4 +
- 7 files changed, 312 insertions(+)
+ 8 files changed, 333 insertions(+), 1 deletion(-)
  create mode 100644 pkg/detector/ospkg/wrlinux/testdata/fixtures/data-source.yaml
  create mode 100644 pkg/detector/ospkg/wrlinux/testdata/fixtures/invalid.yaml
  create mode 100644 pkg/detector/ospkg/wrlinux/testdata/fixtures/wrlinux.yaml
@@ -24,10 +24,10 @@ Signed-off-by: William Lyu <William.Lyu@windriver.com>
  create mode 100644 pkg/detector/ospkg/wrlinux/wrlinux_test.go
 
 diff --git a/pkg/detector/ospkg/detect.go b/pkg/detector/ospkg/detect.go
-index fedc8d31c..1e3f7c455 100644
+index 990d5d23f..722d93f14 100644
 --- a/pkg/detector/ospkg/detect.go
 +++ b/pkg/detector/ospkg/detect.go
-@@ -20,6 +20,7 @@ import (
+@@ -26,6 +26,7 @@ import (
  	"github.com/aquasecurity/trivy/pkg/detector/ospkg/suse"
  	"github.com/aquasecurity/trivy/pkg/detector/ospkg/ubuntu"
  	"github.com/aquasecurity/trivy/pkg/detector/ospkg/wolfi"
@@ -35,14 +35,14 @@ index fedc8d31c..1e3f7c455 100644
  	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
  	"github.com/aquasecurity/trivy/pkg/log"
  	"github.com/aquasecurity/trivy/pkg/types"
-@@ -48,6 +49,7 @@ var (
- 		ftypes.Photon:             photon.NewScanner(),
- 		ftypes.Wolfi:              wolfi.NewScanner(),
- 		ftypes.Chainguard:         chainguard.NewScanner(),
+@@ -58,6 +59,7 @@ var (
+ 		ftypes.Echo:               echo.NewScanner(),
+ 		ftypes.MinimOS:            minimos.NewScanner(),
+ 		ftypes.CoreOS:             coreos.NewScanner(),
 +		ftypes.WRLinux:            wrlinux.NewScanner(),
  	}
- )
  
+ 	// providers dynamically generate drivers based on package information
 diff --git a/pkg/detector/ospkg/wrlinux/testdata/fixtures/data-source.yaml b/pkg/detector/ospkg/wrlinux/testdata/fixtures/data-source.yaml
 new file mode 100644
 index 000000000..11fdaf44d
@@ -97,21 +97,30 @@ index 000000000..9a5f0096f
 +            FixedVersion: "10.19.5.4"
 diff --git a/pkg/detector/ospkg/wrlinux/wrlinux.go b/pkg/detector/ospkg/wrlinux/wrlinux.go
 new file mode 100644
-index 000000000..5dc207b17
+index 000000000..dfae9f478
 --- /dev/null
 +++ b/pkg/detector/ospkg/wrlinux/wrlinux.go
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,161 @@
 +/*
-+ * Copyright (c) 2022 Wind River Systems, Inc.
++ * Copyright (c) 2022-2025 Wind River Systems, Inc.
 + *
-+ * The right to copy, distribute, modify, or otherwise make use
-+ * of this software may be licensed only pursuant to the terms
-+ * of an applicable Wind River license agreement.
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
 + */
 +
 +package wrlinux
 +
 +import (
++	"context"
 +	"time"
 +
 +	"golang.org/x/xerrors"
@@ -121,7 +130,7 @@ index 000000000..5dc207b17
 +	ftypes "github.com/aquasecurity/trivy/pkg/fanal/types"
 +	"github.com/aquasecurity/trivy/pkg/log"
 +	"github.com/aquasecurity/trivy/pkg/types"
-+	"github.com/aquasecurity/trivy/pkg/scanner/utils"
++	"github.com/aquasecurity/trivy/pkg/scan/utils"
 +	"fmt"
 +	"strings"
 +	"strconv"
@@ -131,6 +140,9 @@ index 000000000..5dc207b17
 +	eolDates = map[string]time.Time{
 +		"10.19": time.Date(2024, 11, 30, 23, 59, 59, 0, time.UTC),
 +		"10.21": time.Date(2026, 6, 30, 23, 59, 59, 0, time.UTC),
++		"10.22": time.Date(2027, 6, 30, 23, 59, 59, 0, time.UTC),
++		"10.23": time.Date(2028, 6, 30, 23, 59, 59, 0, time.UTC),
++		"10.24": time.Date(2029, 6, 30, 23, 59, 59, 0, time.UTC),
 +	}
 +)
 +
@@ -168,10 +180,9 @@ index 000000000..5dc207b17
 +}
 +
 +// Detect scans and returns vulnerabilities using wrlinux scanner
-+func (s *Scanner) Detect(osVer string, _ *ftypes.Repository, pkgs []ftypes.Package) ([]types.DetectedVulnerability, error) {
-+	log.Logger.Info("Detecting Wind River Linux vulnerabilities...")
-+	log.Logger.Debugf("Wind River Linux: os version: %s", osVer)
-+	log.Logger.Debugf("Wind River Linux: the number of packages: %d", len(pkgs))
++func (s *Scanner) Detect(ctx context.Context, osVer string, _ *ftypes.Repository, pkgs []ftypes.Package) ([]types.DetectedVulnerability, error) {
++	log.InfoContext(ctx, "Detecting Wind River Linux vulnerabilities...", log.String("os_version", osVer),
++		log.Int("pkg_num", len(pkgs)))
 +
 +	var vulns []types.DetectedVulnerability
 +	for _, pkg := range pkgs {
@@ -183,10 +194,11 @@ index 000000000..5dc207b17
 +		for _, adv := range advisories {
 +			vuln := types.DetectedVulnerability{
 +				VulnerabilityID:  adv.VulnerabilityID,
++				PkgID:            pkg.ID,
 +				PkgName:          pkg.Name,
 +				InstalledVersion: utils.FormatVersion(pkg),
 +				FixedVersion:     adv.FixedVersion,
-+				PkgRef:           pkg.Ref,
++				PkgIdentifier:    pkg.Identifier,
 +				Layer:            pkg.Layer,
 +				Custom:           adv.Custom,
 +				DataSource:       adv.DataSource,
@@ -206,14 +218,14 @@ index 000000000..5dc207b17
 +}
 +
 +// IsSupportedVersion checks if the OS version reached end-of-support.
-+func (s *Scanner) IsSupportedVersion(osFamily ftypes.OSType, osVer string) bool {
++func (s *Scanner) IsSupportedVersion(ctx context.Context, osFamily ftypes.OSType, osVer string) bool {
 +	release := OsVerToRelease(osVer)
 +	if release == "LINCD" {
 +		return true
 +	}
 +	eol, ok := eolDates[release]
 +	if !ok {
-+		log.Logger.Warnf("This OS version is not on the EOL list: %s %s", osFamily, osVer)
++		log.InfoContext(ctx, "This OS version is not on the EOL list:", log.String("osFamily", string(osFamily)),log.String("osVer", osVer))
 +		return false
 +	}
 +	return s.clock.Now().Before(eol)
@@ -252,16 +264,24 @@ index 000000000..5dc207b17
 +}
 diff --git a/pkg/detector/ospkg/wrlinux/wrlinux_test.go b/pkg/detector/ospkg/wrlinux/wrlinux_test.go
 new file mode 100644
-index 000000000..a17c68353
+index 000000000..ca3ecc9d3
 --- /dev/null
 +++ b/pkg/detector/ospkg/wrlinux/wrlinux_test.go
-@@ -0,0 +1,123 @@
+@@ -0,0 +1,131 @@
 +/*
-+ * Copyright (c) 2022 Wind River Systems, Inc.
++ * Copyright (c) 2022-2025 Wind River Systems, Inc.
 + *
-+ * The right to copy, distribute, modify, or otherwise make use
-+ * of this software may be licensed only pursuant to the terms
-+ * of an applicable Wind River license agreement.
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
 + */
 +
 +package wrlinux_test
@@ -379,11 +399,24 @@ index 000000000..a17c68353
 +		})
 +	}
 +}
+diff --git a/pkg/purl/purl.go b/pkg/purl/purl.go
+index 2597a07ae..6f9597500 100644
+--- a/pkg/purl/purl.go
++++ b/pkg/purl/purl.go
+@@ -497,7 +497,7 @@ func purlType(t ftypes.TargetType) string {
+ 	case ftypes.RedHat, ftypes.CentOS, ftypes.Rocky, ftypes.Alma,
+ 		ftypes.Amazon, ftypes.Fedora, ftypes.Oracle, ftypes.OpenSUSE,
+ 		ftypes.OpenSUSELeap, ftypes.OpenSUSETumbleweed, ftypes.SLES, ftypes.SLEMicro, ftypes.Photon,
+-		ftypes.Azure, ftypes.CBLMariner, ftypes.CoreOS:
++		ftypes.Azure, ftypes.CBLMariner, ftypes.CoreOS, ftypes.WRLinux:
+ 		return packageurl.TypeRPM
+ 	case ftypes.Bottlerocket:
+ 		return packageurlTypeBottlerocket
 diff --git a/pkg/vulnerability/vulnerability.go b/pkg/vulnerability/vulnerability.go
-index 6c1e35427..59120621d 100644
+index af42103a5..414d91818 100644
 --- a/pkg/vulnerability/vulnerability.go
 +++ b/pkg/vulnerability/vulnerability.go
-@@ -39,6 +39,10 @@ var (
+@@ -40,6 +40,10 @@ var (
  			"https://hackerone.com",
  		},
  		vulnerability.RubySec: {"https://groups.google.com"},
@@ -395,5 +428,5 @@ index 6c1e35427..59120621d 100644
  )
  
 -- 
-2.25.1
+2.34.1
 

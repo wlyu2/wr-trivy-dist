@@ -5,8 +5,8 @@
 
 # Constants
 
-VER_TRIVY="v0.56.2"
-VER_VULN_LIST_UPDATE="8b61bbff7ce6311eff2897745e37ed37a21b7d56"
+VER_TRIVY="v0.67.2"
+VER_VULN_LIST_UPDATE="7396de6019a8df8944b10c86600a69b6959c6b41"
 
 # Notes:
 #   VER_TRIVY           : Desired Trivy release (ends in '.1','.2',...)

@@ -1,32 +1,43 @@
-From 32677239a961656d01ada802f856b4929c30244d Mon Sep 17 00:00:00 2001
+From 60ada6a67e1737debc3f5f14d6546890cf6755a2 Mon Sep 17 00:00:00 2001
 From: Sakib Sajal <sakib.sajal@windriver.com>
 Date: Sun, 30 Oct 2022 19:12:50 -0400
-Subject: [PATCH 1/3] feat(wrlinux): Add Wind River Linux support (#259)
-
-Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
+Subject: [PATCH 1/2] feat(wrlinux): Add Wind River Linux support (#259)
 
 This commit was not accepted by the upstream.
 
+Signed-off-by: Sakib Sajal <sakib.sajal@windriver.com>
 Signed-off-by: William Lyu <William.Lyu@windriver.com>
 ---
- pkg/vulnsrc/vulnerability/const.go            |   1 +
- pkg/vulnsrc/vulnerability/vulnerability.go    |   2 +-
+ pkg/ecosystem/ecosystem.go                    |   1 +
+ pkg/vulnsrc/vulnerability/const.go            |   2 +
  pkg/vulnsrc/vulnsrc.go                        |   2 +
  .../vuln-list/wrlinux/CVE-2020-24241.json     |  29 +++
  pkg/vulnsrc/wrlinux/types.go                  |  18 ++
- pkg/vulnsrc/wrlinux/wrlinux.go                | 199 ++++++++++++++++++
- pkg/vulnsrc/wrlinux/wrlinux_test.go           |  86 ++++++++
- 7 files changed, 336 insertions(+), 1 deletion(-)
+ pkg/vulnsrc/wrlinux/wrlinux.go                | 207 ++++++++++++++++++
+ pkg/vulnsrc/wrlinux/wrlinux_test.go           |  94 ++++++++
+ 7 files changed, 353 insertions(+)
  create mode 100644 pkg/vulnsrc/wrlinux/testdata/vuln-list/wrlinux/CVE-2020-24241.json
  create mode 100644 pkg/vulnsrc/wrlinux/types.go
  create mode 100644 pkg/vulnsrc/wrlinux/wrlinux.go
  create mode 100644 pkg/vulnsrc/wrlinux/wrlinux_test.go
 
+diff --git a/pkg/ecosystem/ecosystem.go b/pkg/ecosystem/ecosystem.go
+index 75c2bee..344c9c5 100644
+--- a/pkg/ecosystem/ecosystem.go
++++ b/pkg/ecosystem/ecosystem.go
+@@ -44,6 +44,7 @@ const (
+ 	Echo        Type = "echo"
+ 	MinimOS     Type = "minimos"
+ 	Seal        Type = "seal"
++	WRLinux     Type = "wrlinux"
+ )
+ 
+ // String returns the string representation of the ecosystem type
 diff --git a/pkg/vulnsrc/vulnerability/const.go b/pkg/vulnsrc/vulnerability/const.go
-index 19fa371..521c01c 100644
+index d50c2d8..b061d11 100644
 --- a/pkg/vulnsrc/vulnerability/const.go
 +++ b/pkg/vulnsrc/vulnerability/const.go
-@@ -21,6 +21,7 @@ const (
+@@ -23,6 +23,7 @@ const (
  	AzureLinux            types.SourceID = "azure"
  	CBLMariner            types.SourceID = "cbl-mariner"
  	Photon                types.SourceID = "photon"
@@ -34,24 +45,19 @@ index 19fa371..521c01c 100644
  	RubySec               types.SourceID = "ruby-advisory-db"
  	PhpSecurityAdvisories types.SourceID = "php-security-advisories"
  	NodejsSecurityWg      types.SourceID = "nodejs-security-wg"
-diff --git a/pkg/vulnsrc/vulnerability/vulnerability.go b/pkg/vulnsrc/vulnerability/vulnerability.go
-index 440a495..0b983f1 100644
---- a/pkg/vulnsrc/vulnerability/vulnerability.go
-+++ b/pkg/vulnsrc/vulnerability/vulnerability.go
-@@ -14,7 +14,7 @@ const (
- )
- 
- var (
--	sources = []types.SourceID{NVD, RedHat, Debian, Ubuntu, Alpine, Amazon, OracleOVAL, SuseCVRF, Photon,
-+	sources = []types.SourceID{NVD, RedHat, Debian, Ubuntu, Alpine, Amazon, OracleOVAL, SuseCVRF, Photon, WRLinux,
- 		ArchLinux, Alma, Rocky, CBLMariner, AzureLinux, RubySec, PhpSecurityAdvisories, NodejsSecurityWg, GHSA, GLAD, OSV, K8sVulnDB,
- 	}
- )
+@@ -57,6 +58,7 @@ var AllSourceIDs = []types.SourceID{
+ 	OracleOVAL,
+ 	SuseCVRF,
+ 	Photon,
++	WRLinux,
+ 	ArchLinux,
+ 	Alma,
+ 	Rocky,
 diff --git a/pkg/vulnsrc/vulnsrc.go b/pkg/vulnsrc/vulnsrc.go
-index eafb82c..908d62b 100644
+index 9012283..1faa7d1 100644
 --- a/pkg/vulnsrc/vulnsrc.go
 +++ b/pkg/vulnsrc/vulnsrc.go
-@@ -25,6 +25,7 @@ import (
+@@ -30,6 +30,7 @@ import (
  	susecvrf "github.com/aquasecurity/trivy-db/pkg/vulnsrc/suse-cvrf"
  	"github.com/aquasecurity/trivy-db/pkg/vulnsrc/ubuntu"
  	"github.com/aquasecurity/trivy-db/pkg/vulnsrc/wolfi"
@@ -59,10 +65,10 @@ index eafb82c..908d62b 100644
  )
  
  type VulnSrc interface {
-@@ -56,6 +57,7 @@ var (
- 		wolfi.NewVulnSrc(),
- 		chainguard.NewVulnSrc(),
- 		bitnami.NewVulnSrc(),
+@@ -66,6 +67,7 @@ var (
+ 
+ 		rootio.NewVulnSrc(),
+ 		seal.NewVulnSrc(),
 +		wrlinux.NewVulnSrc(),
  
  		k8svulndb.NewVulnSrc(),
@@ -128,16 +134,24 @@ index 0000000..c563ede
 +}
 diff --git a/pkg/vulnsrc/wrlinux/wrlinux.go b/pkg/vulnsrc/wrlinux/wrlinux.go
 new file mode 100644
-index 0000000..b0d290c
+index 0000000..c22861e
 --- /dev/null
 +++ b/pkg/vulnsrc/wrlinux/wrlinux.go
-@@ -0,0 +1,199 @@
+@@ -0,0 +1,207 @@
 +/*
-+ * Copyright (c) 2022 Wind River Systems, Inc.
++ * Copyright (c) 2022-2025 Wind River Systems, Inc.
 + *
-+ * The right to copy, distribute, modify, or otherwise make use
-+ * of this software may be licensed only pursuant to the terms
-+ * of an applicable Wind River license agreement.
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
 + */
 +
 +package wrlinux
@@ -148,6 +162,7 @@ index 0000000..b0d290c
 +	"io"
 +	"log"
 +	"path/filepath"
++	"slices"
 +	"strings"
 +
 +	bolt "go.etcd.io/bbolt"
@@ -156,7 +171,6 @@ index 0000000..b0d290c
 +	"github.com/aquasecurity/trivy-db/pkg/db"
 +	"github.com/aquasecurity/trivy-db/pkg/types"
 +	"github.com/aquasecurity/trivy-db/pkg/utils"
-+	ustrings "github.com/aquasecurity/trivy-db/pkg/utils/strings"
 +	"github.com/aquasecurity/trivy-db/pkg/vulnsrc/vulnerability"
 +)
 +
@@ -268,7 +282,7 @@ index 0000000..b0d290c
 +	for packageName, patch := range cve.Patches {
 +		pkgName := string(packageName)
 +		for osVer, status := range patch {
-+			if !ustrings.InSlice(status.Status, targetStatuses) {
++			if !slices.Contains(targetStatuses, status.Status) {
 +				continue
 +			}
 +			release := OsVerToRelease(string(osVer))
@@ -333,16 +347,24 @@ index 0000000..b0d290c
 +}
 diff --git a/pkg/vulnsrc/wrlinux/wrlinux_test.go b/pkg/vulnsrc/wrlinux/wrlinux_test.go
 new file mode 100644
-index 0000000..6cd053f
+index 0000000..e855efd
 --- /dev/null
 +++ b/pkg/vulnsrc/wrlinux/wrlinux_test.go
-@@ -0,0 +1,86 @@
+@@ -0,0 +1,94 @@
 +/*
-+ * Copyright (c) 2022 Wind River Systems, Inc.
++ * Copyright (c) 2022-2025 Wind River Systems, Inc.
 + *
-+ * The right to copy, distribute, modify, or otherwise make use
-+ * of this software may be licensed only pursuant to the terms
-+ * of an applicable Wind River license agreement.
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ * http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
 + */
 +
 +package wrlinux_test
@@ -424,5 +446,5 @@ index 0000000..6cd053f
 +	}
 +}
 -- 
-2.25.1
+2.34.1
 

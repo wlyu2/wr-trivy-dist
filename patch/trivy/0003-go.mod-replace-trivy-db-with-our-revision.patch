@@ -1,0 +1,23 @@
+From 4f44f24f6e5f221f2e823ceede37c4ae78f50cd9 Mon Sep 17 00:00:00 2001
+From: William Lyu <William.Lyu@windriver.com>
+Date: Tue, 18 Nov 2025 10:57:17 -0500
+Subject: [PATCH 3/3] go.mod: replace "trivy-db" with our revision
+
+Signed-off-by: William Lyu <William.Lyu@windriver.com>
+---
+ go.mod | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/go.mod b/go.mod
+index db0840030..28b366fc8 100644
+--- a/go.mod
++++ b/go.mod
+@@ -512,3 +512,5 @@ tool (
+ 	golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize
+ 	sigs.k8s.io/kind
+ )
++
++replace github.com/aquasecurity/trivy-db => ../trivy-db
+-- 
+2.34.1
+
