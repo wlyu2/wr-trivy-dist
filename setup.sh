@@ -92,6 +92,11 @@ function reset_repo {
     #   $2 - Commit reference that should be used for installation
 
     pushd "$1" || return 1
+    git merge --abort
+    git rebase --abort
+    git cherry-pick --abort
+    git revert --abort
+    git am --abort
     git checkout --force --detach "$2" || return 1
     git clean -d -f -f -x
     popd || return 1
