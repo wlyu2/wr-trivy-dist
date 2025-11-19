@@ -138,7 +138,7 @@ function install {
     load_repo "$REPO_PATH_TRIVY" "$REPO_URL_TRIVY" || return 1
     load_repo "$REPO_PATH_TRIVY_DB" "$REPO_URL_TRIVY_DB" || return 1
     load_repo "$REPO_PATH_VULN_LIST_UPDATE" "$REPO_URL_VULN_LIST_UPDATE" || return 1
-    if [ $phase -eq 1 ] ; then
+    if [ "$phase" -eq 1 ] ; then
         return
     fi
 
@@ -151,7 +151,7 @@ function install {
     if [ "$?" -ne 0 ]; then return 1; fi
     reset_repo "$REPO_PATH_TRIVY_DB" "$ver_trivy_db" || return 1
     reset_repo "$REPO_PATH_VULN_LIST_UPDATE" "$VER_VULN_LIST_UPDATE" || return 1
-    if [ $phase -eq 2 ] ; then
+    if [ "$phase" -eq 2 ] ; then
         return
     fi
 
@@ -168,7 +168,7 @@ function install {
     popd || return 1
     apply_patch "$REPO_PATH_TRIVY" "$PATCH_DIR" || return 1
     apply_patch "$REPO_PATH_VULN_LIST_UPDATE" "$PATCH_DIR" || return 1
-    if [ $phase -eq 3 ] ; then
+    if [ "$phase" -eq 3 ] ; then
         return
     fi
 
@@ -185,7 +185,7 @@ function install {
     pushd "$REPO_PATH_TRIVY" || return 1
     go build -ldflags "-s -w -X=github.com/aquasecurity/trivy/pkg/version/app.ver=$(git describe --tags --always)" ./cmd/trivy
     popd || return 1
-    if [ $phase -eq 4 ] ; then
+    if [ "$phase" -eq 4 ] ; then
         return
     fi
 
@@ -200,19 +200,19 @@ function update_db {
     # Arguments: None
 
     # Update JSON files containing CVE info.
-    pushd "$REPO_PATH_VULN_LIST_UPDATE"
+    pushd "$REPO_PATH_VULN_LIST_UPDATE" || ( echo "update_db() failure point A"; exit )
     ./vuln-list-update -target wrlinux
-    popd
+    popd || ( echo "update_db() failure point B"; exit )
 
     # Build the JSON files into a trivy database file.
-    pushd "$REPO_PATH_TRIVY_DB"
+    pushd "$REPO_PATH_TRIVY_DB" || ( echo "update_db() failure point C"; exit )
     make db-clean
     make build db-fetch-langs db-fetch-vuln-list
-    cp -r $HOME/.cache/vuln-list-update/vuln-list/wrlinux/ cache/vuln-list/wrlinux/
+    cp -r "$HOME"/.cache/vuln-list-update/vuln-list/wrlinux/ cache/vuln-list/wrlinux/
     make db-build
     make db-compact
     make db-compress
-    popd
+    popd || ( echo "update_db() failure point D"; exit )
 
     # Load the newly built trivy database file containing CVE info.
     mkdir -p ~/.cache/trivy/db
