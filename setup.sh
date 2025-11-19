@@ -206,6 +206,7 @@ function update_db {
 
     # Update JSON files containing CVE info.
     pushd "$REPO_PATH_VULN_LIST_UPDATE" || ( echo "update_db() failure point A"; exit )
+    rm -rf "$HOME"/.cache/vuln-list-update
     ./vuln-list-update -target wrlinux
     popd || ( echo "update_db() failure point B"; exit )
 
